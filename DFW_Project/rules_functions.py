@@ -6,100 +6,75 @@ import time
 import sys
 import csv
 
-################################################################
-#                   Main function of the Code                  #
-################################################################
+###############################################################
+#                   IP and MAC Address Columns                #
+###############################################################
 
-# Load the PCAP file
-filepath = sys.argv[1]
-packets = rdpcap(filepath)
+def IP_to_MAC_mapping(packets):
 
-IP_mapTo_MAC = Counter()
-for packet in packets:
-    if packet.haslayer('IP') and packet.haslayer('Ether'):
-        IP_mapTo_MAC[packet['IP'].src]=packet['Ether'].src
-print(f"{IP_mapTo_MAC}")
+    IP_mapTo_MAC = Counter() 
+
+    for packet in packets:
+        if packet.haslayer('IP') and packet.haslayer('Ether'):
+            IP_mapTo_MAC[packet['IP'].src]=packet['Ether'].src
+    return IP_mapTo_MAC
 
 ###############################################################
 #       Rule 1: Detecting Traffic on Non-Standard Ports       #
 ###############################################################
 
-# Inspect packets
-for packet in packets:
-    print(packet.summary())
+def Non_Std_ports(packets):
 
-non_standard_ports = set()
+    non_standard_ports = set()
 
-for packet in packets:
-    if packet.haslayer('TCP'):
-        tcp_layer = packet['TCP']
-        if tcp_layer.dport not in [80, 443, 22]: # Add standard destination ports
-            non_standard_ports.add(tcp_layer.dport)
-print("Non-standard ports detected:",non_standard_ports)
+    for packet in packets:
+        if packet.haslayer('TCP'):
+            tcp_layer = packet['TCP']
+            if tcp_layer.dport not in [80, 443, 22]:  # Add standard destination ports
+                non_standard_ports.add(tcp_layer.dport)
+
+    return non_standard_ports
 
 ###############################################################
 #        Rule 2: High Traffic Volume (DDoS Detection)         #
 ###############################################################
 
-ip_count = Counter()
+def Potential_DDoS_IPs(packets):
 
-for packet in packets:
-    if packet.haslayer('IP'):
-        ip_layer = packet['IP']
-        ip_count[ip_layer.src] += 1
+    IP_THRESHOLD = 100  # Set threshold
+    ip_count = Counter() 
+
+    for packet in packets:
+        if packet.haslayer('IP'):
+            ip_layer = packet['IP']
+            ip_count[ip_layer.src] += 1
+
+    ddos_candidates = [ip for ip, count in ip_count.items() if count > IP_THRESHOLD]
+
+    return ddos_candidates
 
 ###############################################################
 #          Rule 3: Detect IPs exceeding a threshold           #
 ###############################################################
 
-def potential_ddos_ips(packets):
-  """
-  Identifies potential DDoS attack sources based on IP address frequency and packet size.
+def Large_pktSize_IPs(packets):
 
-  Args:
-    packets: A list of packet objects.
+    MAX_MTU = 1500
+    sizeExceed = set()
 
-  Returns:
-    A list of IP addresses that are potential DDoS attack sources.
-  """
+    for packet in packets:
+        size = len(packet)
+        if size > MAX_MTU:
+            if packet.haslayer('IP'):
+                sizeExceed.add(packet['IP'].src)
 
-  IP_THRESHOLD = 100  # Set threshold
-  MAX_MTU = 1500
-  sizeExceed = set()
-  ip_count = Counter() 
-
-  for packet in packets:
-    if packet.haslayer('IP'):
-      ip_layer = packet['IP']
-      ip_count[ip_layer.src] += 1
-
-  ddos_candidates = [ip for ip, count in ip_count.items() if count > IP_THRESHOLD]
-
-  for packet in packets:
-    size = len(packet)
-    if size > MAX_MTU:
-      if packet.haslayer('IP'):
-        sizeExceed.add(packet['IP'].src)
-
-  # Find intersection of ddos_candidates and IPs with large packets
-  potential_ddos_ips = set(ddos_candidates).intersection(sizeExceed) 
-
-  return list(potential_ddos_ips)
+    return sizeExceed
 
 ################################################################
 #               Rule 4: Unsolicitated ARP replies              #
 ################################################################
 
 def ARPreply_unsolicitated(packets):
-    """
-    Detects unsolicited ARP replies.
-
-    Args:
-        packets: A list of packet objects.
-
-    Returns:
-        A set of IP addresses that have sent unsolicited ARP replies.
-    """
 
     arpRequests = set()  # Store unique ARP requests
     unsolicited_replies = set()  # Store unique unsolicitated replies
@@ -120,17 +95,8 @@ def ARPreply_unsolicitated(packets):
 #             Rule 5: Unusually Large DNS Responses            #
 ################################################################
 
-def unusualLargeDNS(packets):
-    """
-    Detects unusually large DNS response packets.
-
-    Args:
-        packets: A list of packet objects.
-
-    Returns:
-        A list of packets that are larger than the specified DNS_THRESHOLD.
-    """
-
+def Unusual_LargeDNS(packets):
+   
     DNS_THRESHOLD = 512  # Threshold for large DNS response size in bytes
 
     largeDNSresponse = []
@@ -149,16 +115,6 @@ def unusualLargeDNS(packets):
 ################################################################
 
 def ExcessICMP(packets):
-    """
-    Detects excessive ICMP Echo Request (ping) activity from different IP addresses.
-
-    Args:
-        packets: A list of packet objects.
-
-    Returns:
-        A list of IP addresses that have sent an excessive number of ICMP Echo Requests 
-        within the specified time window.
-    """
 
     TIME_WINDOW = 60  # Time window in seconds
     ICMP_THRESHOLD = 10  # Maximum number of ICMP Echo Requests within the time window
@@ -191,16 +147,6 @@ def ExcessICMP(packets):
 ################################################################
 
 def TCP_SYN_Flood(packets):
-    """
-    Detects potential TCP SYN floods based on the number of SYN packets 
-    received from the same IP address within a short period.
-
-    Args:
-        packets: A list of packet objects.
-
-    Returns:
-        A set of IP addresses suspected of initiating a SYN flood.
-    """
 
     SYN_FLOOD_THRESHOLD = 100  # No. of SYN packets in a short period
     syn_count = defaultdict(int)
@@ -221,17 +167,7 @@ def TCP_SYN_Flood(packets):
 #                Rule 8: Port Scanning Detection               #
 ################################################################
 
-def portScanDetection(packets):
-    """
-    Detects potential port scans based on the number of connection attempts 
-    to different ports from the same IP address.
-
-    Args:
-        packets: A list of packet objects.
-
-    Returns:
-        A list of ports that attempted multiple port scans from same IP
-    """
+def IPs_scanning_excess_ports(packets):
 
     PORT_SCAN_THRESHOLD = 5  # connection attempts on multiple ports from the same IP
     connection_attempts = defaultdict(set)  # Source IP -> Set of Destination ports
@@ -248,12 +184,11 @@ def portScanDetection(packets):
     
     return multiPortScans
 
-
 ################################################################
 #                      Writing the CSV File                    #
 ################################################################
 
-def calculateMDP(rule):
+def MDP_Calculator(rule):
     MDP = 0
     for rules in rule:
         if(rules == 1):
@@ -262,19 +197,39 @@ def calculateMDP(rule):
  
         
 
-def ReportGen(ipMacs,NSPs,ddos_ip,exceed_size_ips,FloodIps,multipleScan,unsolicatedArp,largeDNS,excessICMP):
+def ReportGen(IPnMAC,NSPs,ddos_ip,exceed_size_ips,FloodIps,multipleScan,unsolicatedArp,largeDNS,excessICMP):
     with open("outputReport.csv",'w+') as file:
         file.writelines("IP\t\tMAC\t\t\tNSP\tDDOS\tExceedingIPs\tSYN-flood-ip\tMultiport-scan\tUnsolicated-ARP\tlarge-DNS  Excess-ICMP      MDP(%)\n")
-        for ip,mac in ipMacs.items():
-            rule=[]
-            rule.append(1 if ip in NSPs else 0)
-            rule.append(1 if ip in ddos_ip else 0)
-            rule.append(1 if ip in exceed_size_ips else 0)
-            rule.append(1 if ip in FloodIps else 0)
-            rule.append(1 if ip in multipleScan else 0)
-            rule.append(1 if ip in unsolicatedArp else 0)
-            rule.append(1 if ip in largeDNS else 0)
-            rule.append(1 if ip in excessICMP else 0)
-            MDP_SCORE=calculateMDP(rule)
-            file.writelines(f"{ip}\t{mac}\t{rule[0]}\t{rule[1]}\t\t{rule[2]}\t\t{rule[3]}\t\t{rule[4]}\t\t{rule[5]}\t\t{rule[6]}\t{rule[7]}\t\t{MDP_SCORE}\n")
+        for ip,mac in IPnMAC.items():
+            condition=[]
+            condition.append(1 if ip in NSPs else 0)
+            condition.append(1 if ip in ddos_ip else 0)
+            condition.append(1 if ip in exceed_size_ips else 0)
+            condition.append(1 if ip in FloodIps else 0)
+            condition.append(1 if ip in multipleScan else 0)
+            condition.append(1 if ip in unsolicatedArp else 0)
+            condition.append(1 if ip in largeDNS else 0)
+            condition.append(1 if ip in excessICMP else 0)
+            MDP_SCORE=MDP_Calculator(condition)
+            file.writelines(f"{ip}\t{mac}\t{condition[0]}\t{condition[1]}\t\t{condition[2]}\t\t{condition[3]}\t\t{condition[4]}\t\t{condition[5]}\t\t{condition[6]}\t{condition[7]}\t\t{MDP_SCORE}\n")
         file.close()
+
+################################################################
+#                   Main function of the Code                  #
+################################################################
+
+# Load the PCAP file
+filepath = sys.argv[1]
+packets = rdpcap(filepath)
+
+IP_MAC = IP_to_MAC_mapping(packets)
+Rule_01 = Non_Std_ports(packets)
+Rule_02 = Potential_DDoS_IPs(packets)
+Rule_03 = Large_pktSize_IPs(packets)
+Rule_04 = ARPreply_unsolicitated(packets)
+Rule_05 = Unusual_LargeDNS(packets)
+Rule_06 = ExcessICMP(packets)
+Rule_07 = TCP_SYN_Flood(packets)
+Rule_08 = IPs_scanning_excess_ports(packets)
+
+ReportGen(IP_MAC, Rule_01, Rule_02, Rule_03, Rule_04, Rule_05, Rule_06, Rule_07, Rule_08)
