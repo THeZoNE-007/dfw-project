@@ -2,12 +2,11 @@ from scapy.all import rdpcap, DNS, IP, ICMP, TCP, ARP
 from collections import Counter
 from collections import defaultdict
 import time
-
 import sys
 import csv
 
 ###############################################################
-#                   IP and MAC Address Columns                #
+#                  IP and MAC Address Columns                 #
 ###############################################################
 
 def IP_to_MAC_mapping(packets):
@@ -17,6 +16,7 @@ def IP_to_MAC_mapping(packets):
     for packet in packets:
         if packet.haslayer('IP') and packet.haslayer('Ether'):
             IP_mapTo_MAC[packet['IP'].src]=packet['Ether'].src
+    
     return IP_mapTo_MAC
 
 ###############################################################
@@ -30,7 +30,7 @@ def Non_Std_ports(packets):
     for packet in packets:
         if packet.haslayer('TCP'):
             tcp_layer = packet['TCP']
-            if tcp_layer.dport not in [80, 443, 22]:  # Add standard destination ports
+            if tcp_layer.dport not in [80, 443, 22]:  # Adding standard destination ports
                 if packet.haslayer('IP'):
                     IP_with_non_standard_ports.add(packet['IP'].src)
 
@@ -42,7 +42,7 @@ def Non_Std_ports(packets):
 
 def Potential_DDoS_IPs(packets):
 
-    IP_THRESHOLD = 100  # Set threshold
+    IP_THRESHOLD = 100
     ip_count = Counter() 
 
     for packet in packets:
@@ -112,7 +112,7 @@ def Unusual_LargeDNS(packets):
     return largeDNSresponse
 
 ################################################################
-#                     Rule 6: Excess ICMP Requests             #
+#                   Rule 6: Excess ICMP Requests               #
 ################################################################
 
 def ExcessICMP(packets):
@@ -126,7 +126,7 @@ def ExcessICMP(packets):
     for packet in packets:
         if packet.haslayer(ICMP):
             icmpLayer = packet[ICMP]
-            if icmpLayer.type == 8:  # ICMP Echo request (ping)
+            if icmpLayer.type == 8:  # ICMP Echo request (Type 8 packet)
                 src_ip = packet[IP].src
                 timestamp = packet.time  # Timestamp of the packet
 
@@ -186,33 +186,34 @@ def IPs_scanning_excess_ports(packets):
     return multiPortScans
 
 ################################################################
-#                      Writing the CSV File                    #
+#                     Writing the CSV File                     #
 ################################################################
 
-def MDP_Calculator(rules):
+def MDP_Calculator(conditions):
     MDP = 0
-    for rule in rules:
-        if(rule == 1):
+    for condition in conditions:
+        if(condition == 1):
             MDP += 10
-    return MDP        
- 
-        
+    
+    return MDP                
 
 def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
     with open("outputReport.csv",'w+') as file:
-        file.writelines("IP_Addr\tMAC_Addr\tRule #1\tRule #2\tRule #3\tRule #4\tRule #5\tRule #6\tRule #7\tRule #8\tMDP(%)\n")
+        file.writelines("IP_Address\tMAC_Address\tNon-Std_Ports\tPotential_DDoS\tL_Pkt_Size\tUnsolicitated_ARP_Replies\tUnusually_L_DNS\tExcessive_ICMP_Echo_Req\tExcessive_TCP_SYN\tExcessive_Port_Scanning\tMDP(%)\n")
         for ip,mac in IPnMAC.items():
-            condition=[]
-            condition.append(1 if ip in C1 else 0)
-            condition.append(1 if ip in C2 else 0)
-            condition.append(1 if ip in C3 else 0)
-            condition.append(1 if ip in C4 else 0)
-            condition.append(1 if ip in C5 else 0)
-            condition.append(1 if ip in C6 else 0)
-            condition.append(1 if ip in C7 else 0)
-            condition.append(1 if ip in C8 else 0)
-            MDP_SCORE=MDP_Calculator(condition)
-            file.writelines(f"{ip}\t{mac}\t{condition[0]}\t{condition[1]}\t{condition[2]}\t{condition[3]}\t{condition[4]}\t{condition[5]}\t{condition[6]}\t{condition[7]}\t{MDP_SCORE}\n")
+            columns=[]
+            columns.append(1 if ip in C1 else 0) # Rule 1
+            columns.append(1 if ip in C2 else 0) # Rule 2
+            columns.append(1 if ip in C3 else 0) # Rule 3
+            columns.append(1 if ip in C4 else 0) # Rule 4
+            columns.append(1 if ip in C5 else 0) # Rule 5
+            columns.append(1 if ip in C6 else 0) # Rule 6
+            columns.append(1 if ip in C7 else 0) # Rule 7
+            columns.append(1 if ip in C8 else 0) # Rule 8
+            MDP_SCORE=MDP_Calculator(columns)    # MDP Score calculation
+            file.writelines(f"{ip}\t{mac}\t{columns[0]}\t{columns[1]}\t{columns[2]}\t{columns[3]}\t{columns[4]}\t{columns[5]}\t{columns[6]}\t{columns[7]}\t{MDP_SCORE}\n")
+        else:
+            print("!! REPORT GENERATED !!")
         file.close()
 
 ################################################################
@@ -223,6 +224,7 @@ def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
 filepath = sys.argv[1]
 packets = rdpcap(filepath)
 
+# Initiating variables
 IP_MAC = IP_to_MAC_mapping(packets)
 Rule_01 = Non_Std_ports(packets)
 Rule_02 = Potential_DDoS_IPs(packets)
@@ -233,4 +235,5 @@ Rule_06 = ExcessICMP(packets)
 Rule_07 = TCP_SYN_Flood(packets)
 Rule_08 = IPs_scanning_excess_ports(packets)
 
+# Report generation
 ReportGen(IP_MAC, Rule_01, Rule_02, Rule_03, Rule_04, Rule_05, Rule_06, Rule_07, Rule_08)
