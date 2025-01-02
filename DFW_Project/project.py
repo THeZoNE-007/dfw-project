@@ -200,7 +200,7 @@ def MDP_Calculator(rules):
 
 def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
     with open("outputReport.csv",'w+') as file:
-        file.writelines("IP_Addr\t\t\tMAC_Addr\tNon-Std_Ports\t\tExcess_Traffic_(DDoS)\t\tL_PKT_Size\t\tUnsolicitated_ARP_Rep\t\tUnusually_L_DNS_Res\t\tExcess_ICMP_Echo_Req\t\tExcess_TCP_SYN\t\tMDP(%)\n")
+        file.writelines("IP_Addr\tMAC_Addr\tRule #1\tRule #2\tRule #3\tRule #4\tRule #5\tRule #6\tRule #7\tRule #8\tMDP(%)\n")
         for ip,mac in IPnMAC.items():
             condition=[]
             condition.append(1 if ip in C1 else 0)
@@ -212,7 +212,7 @@ def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
             condition.append(1 if ip in C7 else 0)
             condition.append(1 if ip in C8 else 0)
             MDP_SCORE=MDP_Calculator(condition)
-            file.writelines(f"{ip}\t{mac}\t\t{condition[0]}\t\t\t{condition[1]}\t\t\t{condition[2]}\t\t\t{condition[3]}\t\t\t{condition[4]}\t\t\t{condition[5]}\t\t\t{condition[6]}\t\t\t{condition[7]}\t\t\t{MDP_SCORE}\n")
+            file.writelines(f"{ip}\t{mac}\t{condition[0]}\t{condition[1]}\t{condition[2]}\t{condition[3]}\t{condition[4]}\t{condition[5]}\t{condition[6]}\t{condition[7]}\t{MDP_SCORE}\n")
         file.close()
 
 ################################################################
