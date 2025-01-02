@@ -25,15 +25,16 @@ def IP_to_MAC_mapping(packets):
 
 def Non_Std_ports(packets):
 
-    non_standard_ports = set()
+    IP_with_non_standard_ports = set()
 
     for packet in packets:
         if packet.haslayer('TCP'):
             tcp_layer = packet['TCP']
             if tcp_layer.dport not in [80, 443, 22]:  # Add standard destination ports
-                non_standard_ports.add(tcp_layer.dport)
+                if packet.haslayer('IP'):
+                    IP_with_non_standard_ports.add(packet['IP'.src])
 
-    return non_standard_ports
+    return IP_with_non_standard_ports
 
 ###############################################################
 #        Rule 2: High Traffic Volume (DDoS Detection)         #
@@ -188,30 +189,30 @@ def IPs_scanning_excess_ports(packets):
 #                      Writing the CSV File                    #
 ################################################################
 
-def MDP_Calculator(rule):
+def MDP_Calculator(rules):
     MDP = 0
-    for rules in rule:
-        if(rules == 1):
+    for rule in rules:
+        if(rule == 1):
             MDP += 10
     return MDP        
  
         
 
-def ReportGen(IPnMAC,NSPs,ddos_ip,exceed_size_ips,FloodIps,multipleScan,unsolicatedArp,largeDNS,excessICMP):
+def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
     with open("outputReport.csv",'w+') as file:
-        file.writelines("IP\t\tMAC\t\t\tNSP\tDDOS\tExceedingIPs\tSYN-flood-ip\tMultiport-scan\tUnsolicated-ARP\tlarge-DNS  Excess-ICMP      MDP(%)\n")
+        file.writelines("IP Address | MAC Address | Non-Standard Ports | Excessive Traffic (DDoS) | Large Packet Size | Unsolicitated ARP replies | Unusually Large DNS Response | Excessive ICMP Echo Requests | Excess TCP SYN | MDP(%)\n")
         for ip,mac in IPnMAC.items():
             condition=[]
-            condition.append(1 if ip in NSPs else 0)
-            condition.append(1 if ip in ddos_ip else 0)
-            condition.append(1 if ip in exceed_size_ips else 0)
-            condition.append(1 if ip in FloodIps else 0)
-            condition.append(1 if ip in multipleScan else 0)
-            condition.append(1 if ip in unsolicatedArp else 0)
-            condition.append(1 if ip in largeDNS else 0)
-            condition.append(1 if ip in excessICMP else 0)
+            condition.append(1 if ip in C1 else 0)
+            condition.append(1 if ip in C2 else 0)
+            condition.append(1 if ip in C3 else 0)
+            condition.append(1 if ip in C4 else 0)
+            condition.append(1 if ip in C5 else 0)
+            condition.append(1 if ip in C6 else 0)
+            condition.append(1 if ip in C7 else 0)
+            condition.append(1 if ip in C8 else 0)
             MDP_SCORE=MDP_Calculator(condition)
-            file.writelines(f"{ip}\t{mac}\t{condition[0]}\t{condition[1]}\t\t{condition[2]}\t\t{condition[3]}\t\t{condition[4]}\t\t{condition[5]}\t\t{condition[6]}\t{condition[7]}\t\t{MDP_SCORE}\n")
+            file.writelines(f"{ip}   |   {mac}   |   {condition[0]}   |   {condition[1]}   |   {condition[2]}   |   {condition[3]}   |   {condition[4]}   |   {condition[5]}   |   {condition[6]}   |   {condition[7]}   |   {MDP_SCORE}\n")
         file.close()
 
 ################################################################
