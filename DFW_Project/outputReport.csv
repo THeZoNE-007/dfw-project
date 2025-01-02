@@ -1,4 +1,4 @@
-IP_Addr	MAC_Addr	Rule #1	Rule #2	Rule #3	Rule #4	Rule #5	Rule #6	Rule #7	Rule #8	MDP(%)
+IP_Address	MAC_Address	Non-Std_Ports	Potential_DDoS	L_Pkt_Size	Unsolicitated_ARP_Replies	Unusually_L_DNS	Excessive_ICMP_Echo_Req	Excessive_TCP_SYN	Excessive_Port_Scanning	MDP(%)
 172.17.153.124	2c:3e:cf:fb:d9:51	0	1	0	0	0	0	0	0	10
 172.17.153.111	8c:ec:4b:ce:e1:3d	0	0	0	0	0	0	0	0	0
 172.17.153.102	e4:a8:df:97:84:5c	0	0	0	0	0	0	0	0	0
