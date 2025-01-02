@@ -32,7 +32,7 @@ def Non_Std_ports(packets):
             tcp_layer = packet['TCP']
             if tcp_layer.dport not in [80, 443, 22]:  # Add standard destination ports
                 if packet.haslayer('IP'):
-                    IP_with_non_standard_ports.add(packet['IP'.src])
+                    IP_with_non_standard_ports.add(packet['IP'].src)
 
     return IP_with_non_standard_ports
 
@@ -174,7 +174,7 @@ def IPs_scanning_excess_ports(packets):
     connection_attempts = defaultdict(set)  # Source IP -> Set of Destination ports
     multiPortScans = set()
     for packet in packets:
-        if packet.hasLayer(TCP):
+        if packet.haslayer(TCP):
             tcp_layer = packet['TCP']
             if packet.haslayer(IP):
                 connection_attempts[packet[IP].src].add(tcp_layer.dport)
