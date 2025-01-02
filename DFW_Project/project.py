@@ -212,7 +212,7 @@ def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
             condition.append(1 if ip in C7 else 0)
             condition.append(1 if ip in C8 else 0)
             MDP_SCORE=MDP_Calculator(condition)
-            file.writelines(f"{ip}\t{mac}\t{condition[0]}\t{condition[1]}\t{condition[2]}\t{condition[3]}\t{condition[4]}\t{condition[5]}\t{condition[6]}\t{condition[7]}\t{MDP_Calculator}\n")
+            file.writelines(f"{ip}\t{mac}\t{condition[0]}\t{condition[1]}\t{condition[2]}\t{condition[3]}\t{condition[4]}\t{condition[5]}\t{condition[6]}\t{condition[7]}\t{MDP_SCORE}\n")
         file.close()
 
 ################################################################
