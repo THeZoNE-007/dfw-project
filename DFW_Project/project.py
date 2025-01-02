@@ -190,12 +190,18 @@ def IPs_scanning_excess_ports(packets):
 ################################################################
 
 def MDP_Calculator(conditions):
-    MDP = 0
-    for condition in conditions:
-        if(condition == 1):
-            MDP += 10
-    
-    return MDP                
+    # Initializing a counter for satisfied rules
+    satisfied_rules = 0
+
+    # Loop through the first 8 conditions
+    for i in range(min(8, len(conditions))):
+        if conditions[i] == 1:
+            satisfied_rules += 1
+
+    MDP_percentage = (satisfied_rules * 100) / 8
+
+    return MDP_percentage               
+
 
 def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
     with open("outputReport.csv",'w+') as file:
