@@ -200,7 +200,7 @@ def MDP_Calculator(rules):
 
 def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
     with open("outputReport.csv",'w+') as file:
-        file.writelines("IP Address | MAC Address | Non-Standard Ports | Excessive Traffic (DDoS) | Large Packet Size | Unsolicitated ARP replies | Unusually Large DNS Response | Excessive ICMP Echo Requests | Excess TCP SYN | MDP(%)\n")
+        file.writelines("IP_Addr\tMAC_Addr\tNon-Std_Ports\tExcess_Traffic_(DDoS)\tL_PKT_Size\tUnsolicitated_ARP_Rep\tUnusually_L_DNS_Res\tExcess_ICMP_Echo_Req\tExcess_TCP_SYN\tMDP(%)\n")
         for ip,mac in IPnMAC.items():
             condition=[]
             condition.append(1 if ip in C1 else 0)
@@ -212,7 +212,7 @@ def ReportGen(IPnMAC, C1, C2, C3, C4, C5, C6, C7, C8):
             condition.append(1 if ip in C7 else 0)
             condition.append(1 if ip in C8 else 0)
             MDP_SCORE=MDP_Calculator(condition)
-            file.writelines(f"{ip}   |   {mac}   |   {condition[0]}   |   {condition[1]}   |   {condition[2]}   |   {condition[3]}   |   {condition[4]}   |   {condition[5]}   |   {condition[6]}   |   {condition[7]}   |   {MDP_SCORE}\n")
+            file.writelines(f"{ip}\t{mac}\t{condition[0]}\t{condition[1]}\t{condition[2]}\t{condition[3]}\t{condition[4]}\t{condition[5]}\t{condition[6]}\t{condition[7]}\t{MDP_Calculator}\n")
         file.close()
 
 ################################################################
